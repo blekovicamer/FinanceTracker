@@ -101,6 +101,38 @@ public class FinanceTrackerForm {
                 JOptionPane.showMessageDialog(null, "Iznos mora biti broj!");
             }
         });
+
+        // -------------------- BRISANJEEE TRANSAKCIJE -----------------------
+        deleteButton.addActionListener(e -> {
+            int row = transactionTable.getSelectedRow();
+
+            if (row < 0) {
+                JOptionPane.showMessageDialog(null, "Niste odabrali transakciju!");
+                return;
+            }
+
+            // Dohvatanje iz BPa
+            Transaction t = manager.getAllTransactions().get(row);
+
+            // Upit Jes siguran il ne
+            int confirm = JOptionPane.showConfirmDialog(
+                    null,
+                    "Jeste li sigurni da želite izbrisati ovu transakciju?",
+                    "Potvrda brisanja",
+                    JOptionPane.YES_NO_OPTION
+            );
+
+            if (confirm == JOptionPane.YES_OPTION) {
+
+                manager.deleteTransaction(t.getId()); // brisanje putem IDa
+
+                JOptionPane.showMessageDialog(null, "Transakcija izbrisana!");
+
+                loadDataIntoTable();
+                updateSummary();
+            }
+        });
+
     }
 
     private void clearFields() {

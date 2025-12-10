@@ -45,11 +45,12 @@ public class TransactionManager {
         return list;
     }
 
+    // -------------------- BRISANJE ------------------------
     public void deleteTransaction(ObjectId id) {
         collection.deleteOne(new Document("_id", id));
     }
 
-
+    // -------------------- UPDATE ----------------------------
     public void updateTransaction(Transaction t) {
         Document updated = new Document("Vrsta", t.getType())
                 .append("Iznos", t.getAmount())
