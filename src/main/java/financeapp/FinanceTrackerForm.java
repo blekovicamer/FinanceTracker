@@ -13,7 +13,7 @@ public class FinanceTrackerForm {
     private JComboBox<String> typeCombo;
     private JButton addButton;
     private JButton deleteButton;
-    private JButton updateButton;  // <-- NEW update button
+    private JButton updateButton;
     private JTable transactionTable;
     private JLabel incomeLabel;
     private JLabel expeseLabel;
@@ -21,7 +21,7 @@ public class FinanceTrackerForm {
 
     private TransactionManager manager;
 
-    private ObjectId selectedTransactionId = null; // <-- stores id of selected row
+    private ObjectId selectedTransactionId = null;
 
     public FinanceTrackerForm() {
         manager = new TransactionManager();
