@@ -3,6 +3,8 @@ package financeapp;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import org.bson.types.ObjectId;
 
 public class FinanceTrackerForm {
@@ -14,22 +16,27 @@ public class FinanceTrackerForm {
     private JButton addButton;
     private JButton deleteButton;
     private JButton updateButton;
+    private JButton exportButton;
     private JTable transactionTable;
     private JLabel incomeLabel;
     private JLabel expeseLabel;
     private JLabel balanceLabel;
 
     private TransactionManager manager;
-
     private ObjectId selectedTransactionId = null;
 
     public FinanceTrackerForm() {
         manager = new TransactionManager();
 
+        // ----------------- INICIJALIZACIJA KATEGORIJA -----------------
+        String[] categories = {"Plata", "Hrana", "Racuni", "Zabava", "Prijevoz", "Ostalo"};
+        typeCombo.setModel(new DefaultComboBoxModel<>(categories));
+
+        // ----------------- UCITAVANJE TABELA I SUMARY -----------------
         loadDataIntoTable();
         updateSummary();
 
-
+        // ----------------- ADD -----------------
         addButton.addActionListener(e -> {
             try {
                 String type = (String) typeCombo.getSelectedItem();
@@ -41,9 +48,7 @@ public class FinanceTrackerForm {
                     return;
                 }
 
-                Transaction t = new Transaction(type, amount, description);
-                manager.addTransaction(t);
-
+                manager.addTransaction(new Transaction(type, amount, description));
                 clearFields();
                 loadDataIntoTable();
                 updateSummary();
@@ -53,29 +58,24 @@ public class FinanceTrackerForm {
             }
         });
 
-
+        // ----------------- SELECT ROW -----------------
         transactionTable.getSelectionModel().addListSelectionListener(e -> {
             int row = transactionTable.getSelectedRow();
             if (row >= 0) {
-
-                // Get real MongoDB transaction
                 Transaction t = manager.getAllTransactions().get(row);
                 selectedTransactionId = t.getId();
-
-                // Load values into fields
                 typeCombo.setSelectedItem(t.getType());
                 amountField.setText(String.valueOf(t.getAmount()));
                 descriptionField.setText(t.getDescription());
             }
         });
 
-
+        // ----------------- UPDATE -----------------
         updateButton.addActionListener(e -> {
             if (selectedTransactionId == null) {
                 JOptionPane.showMessageDialog(null, "Niste odabrali transakciju!");
                 return;
             }
-
             try {
                 String type = (String) typeCombo.getSelectedItem();
                 double amount = Double.parseDouble(amountField.getText());
@@ -86,14 +86,10 @@ public class FinanceTrackerForm {
                     return;
                 }
 
-                Transaction updated = new Transaction(selectedTransactionId, type, amount, description);
-                manager.updateTransaction(updated);
-
+                manager.updateTransaction(new Transaction(selectedTransactionId, type, amount, description));
                 JOptionPane.showMessageDialog(null, "Transakcija ažurirana!");
-
                 clearFields();
                 selectedTransactionId = null;
-
                 loadDataIntoTable();
                 updateSummary();
 
@@ -102,37 +98,64 @@ public class FinanceTrackerForm {
             }
         });
 
-        // -------------------- BRISANJEEE TRANSAKCIJE -----------------------
+        // ----------------- DELETE -----------------
         deleteButton.addActionListener(e -> {
             int row = transactionTable.getSelectedRow();
-
             if (row < 0) {
                 JOptionPane.showMessageDialog(null, "Niste odabrali transakciju!");
                 return;
             }
-
-            // Dohvatanje iz BPa
             Transaction t = manager.getAllTransactions().get(row);
-
-            // Upit Jes siguran il ne
-            int confirm = JOptionPane.showConfirmDialog(
-                    null,
-                    "Jeste li sigurni da želite izbrisati ovu transakciju?",
-                    "Potvrda brisanja",
-                    JOptionPane.YES_NO_OPTION
-            );
-
+            int confirm = JOptionPane.showConfirmDialog(null, "Jeste li sigurni da želite izbrisati ovu transakciju?", "Potvrda brisanja", JOptionPane.YES_NO_OPTION);
             if (confirm == JOptionPane.YES_OPTION) {
-
-                manager.deleteTransaction(t.getId()); // brisanje putem IDa
-
+                manager.deleteTransaction(t.getId());
                 JOptionPane.showMessageDialog(null, "Transakcija izbrisana!");
-
                 loadDataIntoTable();
                 updateSummary();
             }
         });
 
+        // ----------------- EXPORT -----------------
+        exportButton.addActionListener(e -> {
+            ArrayList<Transaction> transactions = manager.getAllTransactions();
+            double totalIncome = manager.getTotalIncome();
+            double totalExpense = manager.getTotalExpense();
+            double balance = totalIncome - totalExpense;
+
+            Map<String, Double> expenseByCategory = new HashMap<>();
+            for (Transaction t : transactions) {
+                if ("Rashod".equalsIgnoreCase(t.getMainType())) {
+                    expenseByCategory.put(t.getType(), expenseByCategory.getOrDefault(t.getType(), 0.0) + t.getAmount());
+                }
+            }
+
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Save export file");
+            int userSelection = fileChooser.showSaveDialog(mainPanel);
+
+            if (userSelection == JFileChooser.APPROVE_OPTION) {
+                java.io.File fileToSave = fileChooser.getSelectedFile();
+                try (java.io.PrintWriter writer = new java.io.PrintWriter(fileToSave)) {
+
+                    writer.println("╔═══════════════════════════╗");
+                    writer.printf("    Ukupni prihod: %.2f%n", totalIncome);
+                    writer.printf("    Ukupni rashod: %.2f%n", totalExpense);
+                    writer.printf("    Stanje: %.2f%n", balance);
+                    writer.println("   Rashodi po kategorijama:");
+
+                    for (String cat : expenseByCategory.keySet()) {
+                        writer.printf(" %s: %.2f%n", cat, expenseByCategory.get(cat));
+                    }
+
+                    writer.println("╚═══════════════════════════╝");
+
+                    JOptionPane.showMessageDialog(null, "Export završen: " + fileToSave.getAbsolutePath());
+
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(null, "Greška pri exportu: " + ex.getMessage());
+                }
+            }
+        });
     }
 
     private void clearFields() {
@@ -143,18 +166,13 @@ public class FinanceTrackerForm {
 
     private void loadDataIntoTable() {
         ArrayList<Transaction> list = manager.getAllTransactions();
-
         DefaultTableModel model = new DefaultTableModel();
         model.addColumn("Vrsta");
         model.addColumn("Iznos");
         model.addColumn("Opis");
 
         for (Transaction t : list) {
-            model.addRow(new Object[]{
-                    t.getType(),
-                    t.getAmount(),
-                    t.getDescription()
-            });
+            model.addRow(new Object[]{t.getType(), t.getAmount(), t.getDescription()});
         }
 
         transactionTable.setModel(model);
@@ -172,5 +190,9 @@ public class FinanceTrackerForm {
 
     public JPanel getMainPanel() {
         return mainPanel;
+    }
+
+    private void createUIComponents() {
+
     }
 }

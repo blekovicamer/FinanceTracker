@@ -23,7 +23,6 @@ public class TransactionManager {
 
     public ArrayList<Transaction> getAllTransactions() {
         ArrayList<Transaction> list = new ArrayList<>();
-
         try (MongoCursor<Document> cursor = collection.find().iterator()) {
             while (cursor.hasNext()) {
                 Document doc = cursor.next();
@@ -41,31 +40,26 @@ public class TransactionManager {
                 list.add(t);
             }
         }
-
         return list;
     }
 
-    // -------------------- BRISANJE ------------------------
     public void deleteTransaction(ObjectId id) {
         collection.deleteOne(new Document("_id", id));
     }
 
-    // -------------------- UPDATE ----------------------------
     public void updateTransaction(Transaction t) {
         Document updated = new Document("Vrsta", t.getType())
+                .append("GlavnaVrsta", t.getMainType())
                 .append("Iznos", t.getAmount())
                 .append("Opis", t.getDescription());
 
-        collection.updateOne(
-                new Document("_id", t.getId()),
-                new Document("$set", updated)
-        );
+        collection.updateOne(new Document("_id", t.getId()), new Document("$set", updated));
     }
 
     public double getTotalIncome() {
         double total = 0;
         for (Transaction t : getAllTransactions()) {
-            if ("Prihod".equalsIgnoreCase(t.getType())) {
+            if ("Prihod".equalsIgnoreCase(t.getMainType())) {
                 total += t.getAmount();
             }
         }
@@ -75,7 +69,7 @@ public class TransactionManager {
     public double getTotalExpense() {
         double total = 0;
         for (Transaction t : getAllTransactions()) {
-            if ("Rashod".equalsIgnoreCase(t.getType())) {
+            if ("Rashod".equalsIgnoreCase(t.getMainType())) {
                 total += t.getAmount();
             }
         }
