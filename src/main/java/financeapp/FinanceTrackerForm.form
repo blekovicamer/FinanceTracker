@@ -28,7 +28,7 @@
         </constraints>
         <properties>
           <foreground color="-394241"/>
-          <text value="Unesite iznos vaseg prihoda"/>
+          <text value="Unesite iznos"/>
         </properties>
       </component>
       <component id="8d2ca" class="javax.swing.JTextField" binding="amountField">
@@ -47,7 +47,7 @@
         </constraints>
         <properties>
           <foreground color="-394241"/>
-          <text value="Opisite ovaj izvor prihoda:"/>
+          <text value="Opisite ovaj izvor"/>
         </properties>
       </component>
       <component id="98fdd" class="javax.swing.JTextField" binding="descriptionField">
